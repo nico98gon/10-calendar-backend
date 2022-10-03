@@ -1,9 +1,10 @@
 const { response } = require('express');
+const User = require('../models/User')
 
-const createUser = ( req, res = response ) => {
+const createUser = async( req, res = response ) => {
 
     // console.log(req.body)
-    const { name, email, password } = req.body;
+    // const { name, email, password } = req.body;
 
     // Own validation
     // if ( name.length < 3 ) {
@@ -13,20 +14,29 @@ const createUser = ( req, res = response ) => {
     //     });
     // }
 
-    res.status(201).json({
-        ok: true,
-        msg: 'register',
-        name,
-        email,
-        password
-    })
+    try{
+        const user = new User( req.body );
+    
+        await user.save();
+    
+        res.status(201).json({
+            ok: true,
+            msg: 'register'
+        })
+    }
+    catch (error) {
+        res.status(500).json({
+            ok: false,
+            msg: 'Please talk with admin'
+        });
+    }
 }
 
 const loginUser = (req, res = response) => {
 
     const { email, password } = req.body;
 
-    res.status(201).json({
+    res.json({
         ok: true,
         msg: 'register',
         email,
