@@ -1,10 +1,12 @@
 const { response } = require('express');
-const User = require('../models/User')
+const bcrypt = require('bcryptjs');
+const User = require('../models/User');
+const { generateJWT } = require('../helpers/jwt');
 
 const createUser = async( req, res = response ) => {
 
     // console.log(req.body)
-    // const { name, email, password } = req.body;
+    const { email, password } = req.body;
 
     // Own validation
     // if ( name.length < 3 ) {
@@ -15,14 +17,34 @@ const createUser = async( req, res = response ) => {
     // }
 
     try{
-        const user = new User( req.body );
+
+        let user = await User.findOne({ email });
+        // console.log( user );
+
+        if ( user ) {
+            return res.status(400).json({
+                ok: false,
+                msg: 'This email is already in use'
+            });
+        }
+
+        user = new User( req.body );
     
+        // crypt password
+        const salt = bcrypt.genSaltSync();
+        user.password = bcrypt.hashSync( password, salt );
+
         await user.save();
     
+        // Generate JWT
+        const token = await generateJWT( user.id, user.name );
+
         res.status(201).json({
             ok: true,
-            msg: 'register'
-        })
+            uid: user.id,
+            name: user.name,
+            token
+        });
     }
     catch (error) {
         res.status(500).json({
@@ -32,16 +54,50 @@ const createUser = async( req, res = response ) => {
     }
 }
 
-const loginUser = (req, res = response) => {
-
+const loginUser = async(req, res = response) => {
+    
     const { email, password } = req.body;
+    
+    try {
 
-    res.json({
-        ok: true,
-        msg: 'register',
-        email,
-        password
-    })
+        const user = await User.findOne({ email });
+
+        if ( !user ) {
+            return res.status(400).json({
+                ok: false,
+                msg: 'Wrong email'
+            });
+        }
+
+        // Confirm password
+        const validPassword = bcrypt.compareSync( password, user.password );
+
+        if ( !validPassword ) {
+            return res.status(400).json({
+                ok: false,
+                msg: 'Wrong Password'
+            });
+        }
+
+        // Generate our JSON Web Token (JWT)
+        const token = await generateJWT( user.id, user.name );
+
+
+        res.json({
+            ok: true,
+            uid: user.uid,
+            name: user.name,
+            token
+        })
+
+        
+    } catch (error) {
+        console.log( error );
+        res.status(500).json({
+            ok: false,
+            msg: 'Please talk with admin'
+        });
+    }
 }
 
 const revalidateUser = (req, res = response) => {
