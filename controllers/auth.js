@@ -30,13 +30,13 @@ const createUser = async( req, res = response ) => {
 
         user = new User( req.body );
     
-        // crypt password
+        //* crypt password
         const salt = bcrypt.genSaltSync();
         user.password = bcrypt.hashSync( password, salt );
 
         await user.save();
     
-        // Generate JWT
+        //* Generate JWT
         const token = await generateJWT( user.id, user.name );
 
         res.status(201).json({
@@ -69,7 +69,7 @@ const loginUser = async(req, res = response) => {
             });
         }
 
-        // Confirm password
+        //* Confirm password
         const validPassword = bcrypt.compareSync( password, user.password );
 
         if ( !validPassword ) {
@@ -79,7 +79,7 @@ const loginUser = async(req, res = response) => {
             });
         }
 
-        // Generate our JSON Web Token (JWT)
+        //* Generate our JSON Web Token (JWT)
         const token = await generateJWT( user.id, user.name );
 
 
@@ -100,10 +100,16 @@ const loginUser = async(req, res = response) => {
     }
 }
 
-const revalidateUser = (req, res = response) => {
+const revalidateUser = async(req, res = response) => {
+
+    const uid = req.uid;
+    const name = req.name;
+
+    const token = await generateJWT( uid, name );
+
     res.json({
         ok: true,
-        msg: 'renew'
+        token
     })
 }
 
